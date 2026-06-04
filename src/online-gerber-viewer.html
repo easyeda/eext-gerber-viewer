@@ -7692,7 +7692,7 @@ const rules = {
   [OPERATOR]: ["x", "/", "+", "-", "(", ")"],
   [COMMA]: ",",
   [WORD]: /[A-Za-z]+/,
-  [WHITESPACE]: /[\t ]+/,
+  [WHITESPACE]: /[\t  ]+/,
   [NEWLINE]: {
     match: /\r?\n/,
     lineBreaks: true
@@ -8870,14 +8870,32 @@ function getPlotOptions(tree) {
 }
 const SIMPLE_TOOL = "simpleTool";
 const MACRO_TOOL = "macroTool";
+const INCH_TO_MM$1 = 25.4;
 function createToolStore() {
   return Object.create(ToolStorePrototype);
+}
+function convertShapeToMm(shape, units2) {
+  if (units2 !== "in") return shape;
+  if (shape.type === "circle") {
+    return { ...shape, diameter: shape.diameter * INCH_TO_MM$1 };
+  }
+  if (shape.type === "rectangle" || shape.type === "obround") {
+    return { ...shape, xSize: shape.xSize * INCH_TO_MM$1, ySize: shape.ySize * INCH_TO_MM$1 };
+  }
+  return shape;
+}
+function convertHoleToMm(hole, units2) {
+  if (!hole || units2 !== "in") return hole;
+  if (hole.type === "circle") {
+    return { ...hole, diameter: hole.diameter * INCH_TO_MM$1 };
+  }
+  return hole;
 }
 const ToolStorePrototype = {
   _currentToolCode: void 0,
   _toolsByCode: {},
   _macrosByName: {},
-  use(node) {
+  use(node, options) {
     if (node.type === TOOL_MACRO) {
       this._macrosByName[node.name] = node.children;
     }
@@ -8887,7 +8905,11 @@ const ToolStorePrototype = {
         type: MACRO_TOOL,
         macro: this._macrosByName[shape.name] ?? [],
         variableValues: shape.variableValues
-      } : { type: SIMPLE_TOOL, shape, hole: hole ?? void 0 };
+      } : {
+        type: SIMPLE_TOOL,
+        shape: convertShapeToMm(shape, options.units),
+        hole: convertHoleToMm(hole, options.units)
+      };
       this._toolsByCode[code] = tool2;
     }
     if (node.type === TOOL_DEFINITION || node.type === TOOL_CHANGE) {
@@ -8896,6 +8918,7 @@ const ToolStorePrototype = {
     return typeof this._currentToolCode === "string" ? this._toolsByCode[this._currentToolCode] : void 0;
   }
 };
+const INCH_TO_MM = 25.4;
 function createLocationStore() {
   return Object.create(LocationStorePrototype);
 }
@@ -8934,16 +8957,26 @@ function parseCoordinate(coordinate, defaultValue, options) {
     return defaultValue;
   }
   if (coordinate.includes(".") || coordinate === "0") {
-    return Number(coordinate);
+    const val2 = Number(coordinate);
+    return options.units === "in" ? val2 * INCH_TO_MM : val2;
   }
   const { coordinateFormat, zeroSuppression } = options;
   const [integerPlaces, decimalPlaces] = coordinateFormat;
   const [sign, signlessCoordinate] = coordinate.startsWith("+") || coordinate.startsWith("-") ? [coordinate[0], coordinate.slice(1)] : ["+", coordinate];
   const digits = integerPlaces + decimalPlaces;
+  const overflow = signlessCoordinate.length - digits;
+  if (overflow > 0) {
+    const paddedCoord = signlessCoordinate.padStart(signlessCoordinate.length, "0");
+    const leading2 = paddedCoord.slice(0, signlessCoordinate.length - decimalPlaces);
+    const trailing2 = paddedCoord.slice(signlessCoordinate.length - decimalPlaces);
+    const val2 = Number(`${sign}${leading2}.${trailing2}`);
+    return options.units === "in" ? val2 * INCH_TO_MM : val2;
+  }
   const paddedCoordinate = zeroSuppression === TRAILING ? signlessCoordinate.padEnd(digits, "0") : signlessCoordinate.padStart(digits, "0");
   const leading = paddedCoordinate.slice(0, integerPlaces);
   const trailing = paddedCoordinate.slice(integerPlaces);
-  return Number(`${sign}${leading}.${trailing}`);
+  const val = Number(`${sign}${leading}.${trailing}`);
+  return options.units === "in" ? val * INCH_TO_MM : val;
 }
 function createShape(shape, point) {
   const { x, y: y2 } = point;
@@ -9229,8 +9262,9 @@ function findCenterCandidates(location, radius) {
     { x: xBase - xAddend, y: yBase + yAddend }
   ];
 }
-function plotMacro(tool2, location) {
+function plotMacro(tool2, location, options) {
   const shapes = [];
+  const toMm = options?.units === "in" ? 25.4 : 1;
   const variableValues = Object.fromEntries(
     tool2.variableValues.map((value, index) => [`$${index + 1}`, value])
   );
@@ -9243,7 +9277,7 @@ function plotMacro(tool2, location) {
       const parameters = block.parameters.map((p2) => {
         return solveExpression(p2, variableValues);
       });
-      shapes.push(...plotPrimitive(block.code, origin, parameters));
+      shapes.push(...plotPrimitive(block.code, origin, scaleDimensions(block.code, parameters, toMm)));
     }
   }
   return { type: LAYERED_SHAPE, shapes };
@@ -9263,6 +9297,23 @@ function solveExpression(expression, variables) {
     case "/":
       return left / right;
   }
+}
+function scaleDimensions(code, params, toMm) {
+  if (toMm === 1) return params;
+  switch (code) {
+    case MACRO_CIRCLE:
+      return [params[0], params[1] * toMm, params[2] * toMm, params[3] * toMm, params[4]];
+    case MACRO_CENTER_LINE:
+      return [params[0], params[1] * toMm, params[2] * toMm, params[3] * toMm, params[4] * toMm, params[5]];
+    case MACRO_VECTOR_LINE:
+    case MACRO_VECTOR_LINE_DEPRECATED:
+      return [params[0], params[1] * toMm, params[2] * toMm, params[3] * toMm, params[4] * toMm, params[5] * toMm, params[6]];
+    case MACRO_LOWER_LEFT_LINE_DEPRECATED:
+      return [params[0], params[1] * toMm, params[2] * toMm, params[3] * toMm, params[4] * toMm, params[5]];
+    case MACRO_POLYGON:
+      return [params[0], params[1], params[2] * toMm, params[3] * toMm, params[4] * toMm, params[5]];
+  }
+  return params;
 }
 function plotPrimitive(code, origin, parameters) {
   switch (code) {
@@ -9313,16 +9364,16 @@ function plotVectorLine(origin, parameters) {
   };
 }
 function plotCenterLine(origin, parameters) {
-  const [exposure, width, height, cx, cy, degrees] = parameters;
-  const [halfWidth, halfHeight] = [width / 2, height / 2];
+  const [exposure, width, length, cx, cy, degrees] = parameters;
+  const [halfWidth, halfLength] = [width / 2, length / 2];
   return {
     type: POLYGON,
     erase: exposure === 0,
     points: [
-      [cx - halfWidth, cy - halfHeight],
-      [cx + halfWidth, cy - halfHeight],
-      [cx + halfWidth, cy + halfHeight],
-      [cx - halfWidth, cy + halfHeight]
+      [cx - halfWidth, cy - halfLength],
+      [cx + halfWidth, cy - halfLength],
+      [cx + halfWidth, cy + halfLength],
+      [cx - halfWidth, cy + halfLength]
     ].map((p2) => rotateAndShift(p2, origin, degrees))
   };
 }
@@ -9464,7 +9515,7 @@ const GraphicPlotterPrototype = {
   _ambiguousArcCenter: false,
   _regionMode: false,
   _defaultGraphic: void 0,
-  plot(node, tool2, location) {
+  plot(node, tool2, location, options) {
     const graphics = [];
     const nextGraphicType = this._setGraphicState(node);
     const pathGraphic = this._plotCurrentPath(node, tool2, nextGraphicType);
@@ -9475,7 +9526,7 @@ const GraphicPlotterPrototype = {
       graphics.push({ type: IMAGE_SHAPE, shape: plotShape(tool2, location) });
     }
     if (nextGraphicType === SHAPE && tool2?.type === MACRO_TOOL) {
-      graphics.push({ type: IMAGE_SHAPE, shape: plotMacro(tool2, location) });
+      graphics.push({ type: IMAGE_SHAPE, shape: plotMacro(tool2, location, options) });
     }
     if (nextGraphicType === SEGMENT) {
       this._currentPath = this._currentPath ?? {
@@ -9563,9 +9614,9 @@ function plot(tree) {
   const graphicPlotter = createGraphicPlotter(tree.filetype);
   const children = [];
   for (const node of tree.children) {
-    const tool2 = toolStore.use(node);
+    const tool2 = toolStore.use(node, plotOptions);
     const location = locationStore.use(node, plotOptions);
-    const graphics = graphicPlotter.plot(node, tool2, location);
+    const graphics = graphicPlotter.plot(node, tool2, location, plotOptions);
     children.push(...graphics);
   }
   return {
@@ -10982,39 +11033,6 @@ function unzipSync(data, opts) {
   }
   return files;
 }
-const _logs = [];
-let _start = 0;
-function perfStart(label) {
-  if (_logs.length === 0) _start = performance.now();
-  const t2 = performance.now() - _start;
-  _logs.push({ label, time: t2 });
-  console.log(`[PERF] ${_fmt(t2)} | ${label}`);
-}
-function perfEnd(label) {
-  const t2 = performance.now() - _start;
-  const last = _logs.filter((l2) => l2.label === label).pop();
-  const delta = last ? t2 - last.time : 0;
-  _logs.push({ label: `${label}_end`, time: t2, delta });
-  console.log(`[PERF] ${_fmt(t2)} | ${label} done (+${_fmt(delta)})`);
-}
-function perfDump() {
-  console.log("\n=== Performance Summary ===");
-  let prev = _logs[0];
-  for (const l2 of _logs) {
-    const delta = l2.time - prev.time;
-    console.log(`  ${_fmt(l2.time)} [+${_fmt(delta)}] ${l2.label}`);
-    prev = l2;
-  }
-  console.log("==========================\n");
-}
-function perfClear() {
-  _logs.length = 0;
-  _start = 0;
-}
-function _fmt(ms2) {
-  return ms2.toFixed(1) + "ms";
-}
-console.log(`Online Gerber Viewer v${"1.1.0"} (${"2026-06-04"})`);
 const { toolbar, canvas, rightPanel, progressLabel, progressTrack, progressBar } = createLayout();
 let leafer = null;
 const layerEntries = [];
@@ -11067,8 +11085,6 @@ function showToast(message) {
   }, 3e3);
 }
 async function handleFiles(files) {
-  perfClear();
-  perfStart("handleFiles_start");
   const gerberFiles = [];
   for (const file of files) {
     if (file.name.toLowerCase().endsWith(".zip")) {
@@ -11102,12 +11118,10 @@ async function handleFiles(files) {
       const skipped = gerberFiles.length - filtered.length;
       showToast(`Skipped ${skipped} non-Gerber file(s)`);
     }
-    perfEnd("handleFiles_start");
     await renderGerberFiles(filtered);
   }
 }
 async function renderGerberFiles(files) {
-  perfStart("renderGerberFiles_total");
   if (leafer) {
     leafer.destroy();
     leafer = null;
@@ -11115,56 +11129,18 @@ async function renderGerberFiles(files) {
   layerEntries.length = 0;
   eyeIcons.length = 0;
   resetInnerColorIndex();
-  perfStart("Leafer_init");
   leafer = new xe$1({
     view: canvas,
     type: "design",
-    zoom: { min: 0.01, max: 200 },
+    zoom: { min: 0.01, max: 99999 },
     wheel: { zoomMode: true },
     move: { drag: true, dragAnimate: false },
     pointer: { hitRadius: 0 },
     pixelRatio: 1
   });
-  perfEnd("Leafer_init");
-  let _zoomStart = 0;
-  let _panStart = 0;
-  let _fpsFrames = 0;
-  let _fpsTime = performance.now();
-  canvas.addEventListener("wheel", () => {
-    if (_zoomStart === 0) _zoomStart = performance.now();
-    requestAnimationFrame(() => {
-      if (_zoomStart > 0) {
-        console.log(`[PERF] zoom frame: ${(performance.now() - _zoomStart).toFixed(1)}ms`);
-        _zoomStart = 0;
-      }
-    });
-  }, { passive: true });
-  canvas.addEventListener("pointerdown", () => {
-    _panStart = performance.now();
-  }, { passive: true });
-  canvas.addEventListener("pointerup", () => {
-    if (_panStart > 0) {
-      console.log(`[PERF] pan frame: ${(performance.now() - _panStart).toFixed(1)}ms`);
-      _panStart = 0;
-    }
-  }, { passive: true });
-  function trackFPS() {
-    _fpsFrames++;
-    const now = performance.now();
-    if (now - _fpsTime >= 1e3) {
-      const fps = Math.round(_fpsFrames * 1e3 / (now - _fpsTime));
-      console.log(`[PERF] FPS: ${fps}`);
-      _fpsFrames = 0;
-      _fpsTime = now;
-    }
-    requestAnimationFrame(trackFPS);
-  }
-  trackFPS();
   await yieldToMain();
-  perfStart("identifyLayers");
   const filenames = files.map((f2) => f2.name);
   const layerMap = identifyLayers(filenames);
-  perfEnd("identifyLayers");
   const parsedLayers = files.map((f2) => ({
     name: f2.name,
     identity: layerMap[f2.name],
@@ -11240,35 +11216,16 @@ async function renderGerberFiles(files) {
   const list = document.createElement("div");
   list.id = "layer-list";
   rightPanel.appendChild(list);
-  perfStart("layer_loading_loop");
-  let _totalShapes = 0, _totalPaths = 0, _totalRegions = 0;
   for (let i = 0; i < total; i++) {
     const layer = parsedLayers[i];
     try {
-      perfStart(`parse_${i}`);
       const tree = parse(layer.content);
-      perfEnd(`parse_${i}`);
-      perfStart(`plot_${i}`);
       const imageTree = plot(tree);
-      perfEnd(`plot_${i}`);
-      let shapeCount = 0, pathCount = 0, regionCount = 0;
-      for (const g2 of imageTree.children) {
-        if (g2.type === IMAGE_SHAPE) shapeCount++;
-        else if (g2.type === IMAGE_PATH) pathCount++;
-        else if (g2.type === IMAGE_REGION) regionCount++;
-      }
-      _totalShapes += shapeCount;
-      _totalPaths += pathCount;
-      _totalRegions += regionCount;
       const color = getLayerColor(layer.identity.type, layer.identity.side);
-      perfStart(`render_${i}`);
       const group = renderImageTree(imageTree, color);
-      perfEnd(`render_${i}`);
       group.name = layer.name;
       group.visible = i === 0 || layer.identity.type === TYPE_OUTLINE || layer.identity.type === TYPE_COPPER && layer.identity.side === "top";
-      perfStart(`leafer_add_${i}`);
       leafer.add(group);
-      perfEnd(`leafer_add_${i}`);
       const entry = {
         name: layer.name,
         type: layer.identity.type,
@@ -11286,18 +11243,11 @@ async function renderGerberFiles(files) {
     if (i === 0) setTimeout(() => fitView(), 0);
     await yieldToMain();
   }
-  perfEnd("layer_loading_loop");
-  console.log(`[PERF] total shapes=${_totalShapes} paths=${_totalPaths} regions=${_totalRegions}`);
   showProgress(total, total, "");
   setFilename(files.length === 1 ? files[0].name : `${files.length} files`);
   await yieldToMain();
   hideProgress();
-  setTimeout(() => {
-    perfStart("fitView_final");
-    fitView();
-    perfEnd("fitView_final");
-    perfDump();
-  }, 50);
+  setTimeout(() => fitView(), 50);
 }
 function appendLayerRow(container, layer) {
   const row = document.createElement("div");
