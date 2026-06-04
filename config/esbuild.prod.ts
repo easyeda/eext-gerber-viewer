@@ -5,7 +5,7 @@ import esbuild from 'esbuild';
 
 import common from './esbuild.common';
 
-const EXTENSION_HOOK = `(function(){try{var bc=new BroadcastChannel('gerber-viewer');bc.postMessage({ready:true});bc.onmessage=function(e){if(e.data&&e.data.bytes){bc.close();var f=new File([new Uint8Array(e.data.bytes)],e.data.name);gw([f])}};setTimeout(function(){bc.close()},30000)}catch(e){console.error(e)}})();`;
+const EXTENSION_HOOK = `(function(){try{var bc=new BroadcastChannel('gerber-viewer');bc.postMessage({ready:true});bc.onmessage=function(e){if(e.data&&e.data.bytes){bc.close();var f=new File([new Uint8Array(e.data.bytes)],e.data.name);handleFiles([f])}};setTimeout(function(){bc.close()},30000)}catch(e){console.error(e)}})();`;
 
 (async () => {
 	await esbuild.build(common);
