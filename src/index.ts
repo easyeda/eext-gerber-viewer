@@ -16,8 +16,8 @@ export async function viewPcbGerber(): Promise<void> {
 	if (file) {
 		const ab = await file.arrayBuffer();
 		const bytes = Array.from(new Uint8Array(ab));
-		if (DEBUG_SAVE_GERBER)
-			await eda.sys_FileSystem.saveFile(file, file.name);
+		// if (DEBUG_SAVE_GERBER)
+		// 	await eda.sys_FileSystem.saveFile(file, file.name);
 		await eda.sys_IFrame.openIFrame(
 			'/dist/online-gerber-viewer.html',
 			9999,
