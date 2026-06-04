@@ -11,6 +11,10 @@
 - **查看 PCB Gerber...** — 从当前 PCB 获取 Gerber 文件并自动在查看器中打开
 - **打开 Gerber 查看器...** — 打开空的查看器窗口，可手动加载文件
 
+| 功能界面 | Gerber查看 |
+| --- | --- |
+| ![alt text](images/image1.png) | ![alt text](images/image2.png) |
+
 ## 快速开始
 
 ```bash

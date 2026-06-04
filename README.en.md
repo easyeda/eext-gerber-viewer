@@ -11,6 +11,10 @@ A Gerber file viewer extension for EasyEDA, supporting RS-274X and Excellon file
 - **View PCB Gerber...** — Retrieves Gerber from the current PCB and opens it in the viewer automatically
 - **Open Gerber Viewer...** — Opens an empty viewer window for manually loading files
 
+| Feature Overview | Gerber Viewing |
+| --- | --- |
+| ![alt text](images/image1.png) | ![alt text](images/image2.png) |
+
 ## Getting Started
 
 ```bash

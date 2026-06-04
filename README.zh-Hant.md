@@ -11,6 +11,10 @@
 - **檢視 PCB Gerber...** — 從目前 PCB 取得 Gerber 檔案並自動在檢視器中開啟
 - **開啟 Gerber 檢視器...** — 開啟空的檢視器視窗，可手動載入檔案
 
+| 功能介面 | Gerber檢視 |
+| --- | --- |
+| ![alt text](images/image1.png) | ![alt text](images/image2.png) |
+
 ## 快速開始
 
 ```bash

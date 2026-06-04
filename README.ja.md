@@ -11,6 +11,10 @@ EasyEDA 用の Gerber ファイルビューア拡張機能です。RS-274X お�
 - **PCB Gerber を表示...** — 現在の PCB から Gerber を取得し、自動的にビューアで開きます
 - **Gerber ビューアを開く...** — 空のビューアウィンドウを開き、手動でファイルを読み込めます
 
+| 機能概要 | Gerber 表示 |
+| --- | --- |
+| ![alt text](images/image1.png) | ![alt text](images/image2.png) |
+
 ## はじめに
 
 ```bash
