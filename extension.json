@@ -1,0 +1,63 @@
+{
+	"name": "gerber-viewer",
+	"uuid": "9fd764b520a24fd68d3a6b8a04b3a2a4",
+	"displayName": "Gerber查看器",
+	"description": "一个简单的Gerber查看器。A simple Gerber viewer for EasyEDA",
+	"version": "1.0.0",
+	"publisher": "EasyEDA",
+	"engines": {
+		"eda": "^3.2.0"
+	},
+	"license": "Apache-2.0",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/easyeda/eext-gerber-viewer"
+	},
+	"categories": "PCB",
+	"keywords": [
+		"Tool",
+		"Gerber",
+		"Viewer"
+	],
+	"images": {
+		"logo": "./images/logo.jpg"
+	},
+	"homepage": "https://github.com/easyeda/eext-gerber-viewer",
+	"bugs": "https://github.com/easyeda/eext-gerber-viewer/issues",
+	"activationEvents": {},
+	"entry": "./dist/index",
+	"dependentExtensions": {},
+	"headerMenus": {
+		"home": [
+			{
+				"id": "gerberViewerHome",
+				"title": "Gerber Viewer",
+				"menuItems": [
+					{
+						"id": "openGerberViewer",
+						"title": "Open Gerber Viewer...",
+						"registerFn": "openGerberViewer"
+					}
+				]
+			}
+		],
+		"pcb": [
+			{
+				"id": "gerberViewerPcb",
+				"title": "Gerber Viewer",
+				"menuItems": [
+					{
+						"id": "viewPcbGerber",
+						"title": "View PCB Gerber...",
+						"registerFn": "viewPcbGerber"
+					},
+					{
+						"id": "openGerberViewer",
+						"title": "Open Gerber Viewer...",
+						"registerFn": "openGerberViewer"
+					}
+				]
+			}
+		]
+	}
+}
