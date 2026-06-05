@@ -1,5 +1,6 @@
 {
 	"Gerber Viewer": "Gerber查看器",
 	"Error": "错误",
-	"Failed to get Gerber file": "获取Gerber文件失败"
+	"Failed to get Gerber file": "获取Gerber文件失败",
+	"This is a sample IFrame page": "这是一个示例 IFrame 页面"
 }

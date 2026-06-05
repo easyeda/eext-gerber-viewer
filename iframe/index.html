@@ -6,6 +6,21 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	</head>
 	<body>
-		<p>这是一个示例 IFrame 页面</p>
+		<p data-i18n="This is a sample IFrame page">This is a sample IFrame page</p>
+		<script>
+			var edaObj = (typeof eda !== 'undefined') ? eda : (window.parent && window.parent.eda);
+			function t(tag, ...args) {
+				if (edaObj && edaObj.sys_I18n) return edaObj.sys_I18n.text(tag, undefined, undefined, ...args);
+				return tag;
+			}
+			function applyI18n() {
+				var els = document.querySelectorAll('[data-i18n]');
+				for (var i = 0; i < els.length; i++) {
+					var key = els[i].getAttribute('data-i18n');
+					els[i].textContent = t(key);
+				}
+			}
+			applyI18n();
+		</script>
 	</body>
 </html>

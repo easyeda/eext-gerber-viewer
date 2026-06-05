@@ -2,5 +2,6 @@
 	"EasyEDA extension SDK v": "EasyEDA extension SDK v${1}",
 	"Gerber Viewer": "Gerber Viewer",
 	"Error": "Error",
-	"Failed to get Gerber file": "Failed to get Gerber file"
+	"Failed to get Gerber file": "Failed to get Gerber file",
+	"This is a sample IFrame page": "This is a sample IFrame page"
 }
