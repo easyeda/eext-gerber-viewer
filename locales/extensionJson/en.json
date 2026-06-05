@@ -2,5 +2,10 @@
 	"About...": "About...",
 	"Gerber Viewer": "Gerber Viewer",
 	"View PCB Gerber...": "View PCB Gerber...",
-	"Open Gerber Viewer...": "Open Gerber Viewer..."
+	"Open Gerber Viewer...": "Open Gerber Viewer...",
+	"Gerber查看器": "Gerber Viewer",
+	"一个简单的Gerber查看器。A simple Gerber viewer for EasyEDA": "A simple Gerber viewer for EasyEDA",
+	"Tool": "Tool",
+	"Gerber": "Gerber",
+	"Viewer": "Viewer"
 }
